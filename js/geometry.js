@@ -1,18 +1,20 @@
 import Mouse from "./mouse.js";
 import Group  from "./groups.js";
 
-export default class Geometry {
+export class Geometry {
     constructor(x, y, kind, canvas, groups = []) {
         this.x = x;
         this.y = y;
         this.kind = kind;
-        this.radius = 0;
+        this.collide_radius = 0;
         this.weight = 100;
         this.static = false;
+        this.level_perimeter = null;
 
-        this.speed = 0.2;
-        this.viscous_friction = 0.2;
-        this.dynamic_friction = 0.2;
+        //this.max_speed = 500;
+        this.slide_acceleration = 4500;
+        this.viscous_friction = 7;
+        this.dynamic_friction = 20;
 
         // Avoid double counting the collisions
         this.collision_results = [];
@@ -37,7 +39,7 @@ export default class Geometry {
             x : 0,
             y : 0
         };
-        this.spinning_velocity = 0;
+        this.spin_velocity = 0;
         this.mouse_velocity  = {
             x : 0,
             y : 0
@@ -47,6 +49,13 @@ export default class Geometry {
             x : 0,
             y : 0
         };
+
+        // A constant force that pulls the object
+        this.pull_force = {
+            x : 0,
+            y : 0
+        };
+
         this.torque = 0;
         this.angular_momentum = 0;
 
@@ -95,7 +104,13 @@ export default class Geometry {
         }
     }
 
-    update(deltaTime, camera) {
+    update(deltaTime, camera, collision_group, perimeter) {
+
+        var dt = deltaTime / 1000; // Seconds
+
+        // Reset the acceleration
+        this.acceleration.x = 0;
+        this.acceleration.y = 0;
 
         // Point toward the mouse if this geometry is a player
         if (this.kind === "player") {
@@ -111,35 +126,35 @@ export default class Geometry {
 
             var norm = Math.sqrt( pointing_toward.x**2 +  pointing_toward.y**2);
             if (this.mouse_ctrl.is_clicked && norm > this.moving_radius) {
-                this.mouse_velocity.x = pointing_toward.x * this.speed / norm ;
-                this.mouse_velocity.y = pointing_toward.y * this.speed / norm;
+                this.mouse_velocity.x = pointing_toward.x * this.slide_acceleration / norm ;
+                this.mouse_velocity.y = pointing_toward.y * this.slide_acceleration / norm;
             } else {
                 this.mouse_velocity.x = 0;
                 this.mouse_velocity.y = 0;
             }
+            this.acceleration.x = this.mouse_velocity.x;
+            this.acceleration.y = this.mouse_velocity.y;
         }
 
         // TODO: Update physics and accelerations
+        this.acceleration.x += this.pull_force.x;
+        this.acceleration.y += this.pull_force.y; 
 
         // Friction
         const v_norm = modulus(this.velocity);
         if (v_norm > 0) {
-
-            const delta_vx = (-this.velocity.x * this.viscous_friction - Math.sign(this.velocity.x) * this.dynamic_friction) * deltaTime;
-            const delta_vy = (-this.velocity.y * this.viscous_friction - Math.sign(this.velocity.y) * this.dynamic_friction) * deltaTime;
-
-            if ((this.velocity.x + delta_vx)*this.velocity.x < 0) this.velocity.x = 0;
-            else this.velocity.x += delta_vx; 
-
-            if ((this.velocity.y + delta_vy)*this.velocity.y < 0) this.velocity.y = 0;
-            else this.velocity.y += delta_vy; 
+            this.acceleration.x -= this.velocity.x * this.viscous_friction + Math.sign(this.velocity.x) * this.dynamic_friction;
+            this.acceleration.y -= this.velocity.y * this.viscous_friction + Math.sign(this.velocity.x) * this.dynamic_friction;
         }
+
+        this.velocity.x += this.acceleration.x * dt;
+        this.velocity.y += this.acceleration.y * dt;
 
 
         // Apply the moovements
-        this.x += (this.velocity.x + this.mouse_velocity.x) * deltaTime;
-        this.y += (this.velocity.y + this.mouse_velocity.y) * deltaTime;
-        this.rotation_angle += this.spinning_velocity * deltaTime;
+        this.x += this.velocity.x * dt;
+        this.y += this.velocity.y * dt;
+        this.rotation_angle += this.spin_velocity * dt;
 
         // Avoid the number to grow too much
         if (this.rotation_angle > Math.PI * 2) this.rotation_angle-= Math.PI* 2;
@@ -150,15 +165,31 @@ export default class Geometry {
         //console.log("Rot angle:", this.rotation_angle, "  Toward pos: ", pointing_toward);
 
         // Set the radius of the current geometry to match the vertices
-        this.radius = 0;
+        this.collide_radius = 0;
         var radius = 0;
         for (var i = 0; i < this.n_vertices; ++i) {
             radius = Math.sqrt(this.vertices[i].x**2 + this.vertices[i].y**2);
-            if (radius > this.radius) this.radius = radius;
+            if (radius > this.collide_radius) this.collide_radius = radius;
         }
+        this.collide_radius *= this.hitbox;
 
+        // Update the bouncing enemies
+        if (this.kind === "bouncing") {
+            // Check bouncing and invert the direction
+            var condition = false;
+            condition = this.collide_with_perimeter(perimeter);
+            if (!condition) condition = this.check_collision(collision_group);
 
+            if (condition) {
+                this.velocity.x *= -1;
+                this.velocity.y *= -1;
+                this.pull_force.x *= -1;
+                this.pull_force.y *= -1;
+                this.spin_velocity *= -1;
+            }
+        }
     }
+
 
     check_collision(collision_group) {
         // Apply collision reactions
@@ -204,13 +235,30 @@ export default class Geometry {
 
         // First use a circular collision 
         const distance2 = (this.x - other.x)*(this.x - other.x) + (this.y - other.y)*(this.y - other.y) ;
-        const tollerance =  this.radius*this.radius + other.radius*other.radius + 2 * this.radius*other.radius;
+        const tollerance =  this.collide_radius*this.collide_radius + other.collide_radius*other.collide_radius + 2 * this.collide_radius*other.collide_radius;
 
         if (distance2 < tollerance) {
             return true;
         }
         return false;
     }
+
+    collide_with_perimeter(perimeter) {
+        for (var i = 0; i < this.n_edges; ++i) {
+            let my_edge = this.get_global_edge(i, true);
+
+            for (var j = 0; j < perimeter.length; ++j) {
+                var next = (j+1) % perimeter.length;
+
+                if (segment_intersect(my_edge[0], my_edge[1], perimeter[j], perimeter[next])) {
+                    console.log("Collision:", my_edge, " with:", [perimeter[j], perimeter[next]]);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
 
     geometrical_collision(other) {
         // Assume a collision between the objects
@@ -329,7 +377,7 @@ function distance(v1, v2) {
     return Math.sqrt((v1.x-v2.x)**2  + (v1.y - v2.y)**2);
 }
 
-function modulus(vector) {
+export function modulus(vector) {
     return Math.sqrt(vector.x * vector.x + vector.y* vector.y);
 }
 
@@ -344,6 +392,6 @@ function segment_intersect(A, B, C, D) {
 }
 
 
-function scalar_product(v1, v2) {
+export function scalar_product(v1, v2) {
     return v1.x * v2.x + v1.y * v2.y
 }

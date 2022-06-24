@@ -9,16 +9,27 @@ export default class SpriteGroup {
     }
 
     draw(context, camera) {
+        // Sort the sprites
+        function sorting_rules(a,b) {
+            if (a.kind === "player") return 1;
+            if (b.kind === "player") return -1;
+
+            if (a.kind === "target") return 1;
+            if (b.kind === "target") return -1;
+            return 0;
+        }
+        this.sprites.sort(sorting_rules);
+
         for (var i = 0; i < this.sprites.length; ++i) {
             let sprite = this.sprites[i];
             sprite.draw(context, camera);
         }
     }
 
-    update(deltaTime, camera) {
+    update(deltaTime, camera, collisions, perimeter) {
         for (var i = 0; i < this.sprites.length; ++i) {
             let sprite = this.sprites[i];
-            sprite.update(deltaTime, camera);
+            sprite.update(deltaTime, camera, collisions, perimeter);
         }
     }
 
@@ -36,5 +47,12 @@ export default class SpriteGroup {
         var index = sprite.groups.findIndex( (element) => element == this);
         sprite.groups.splice(index, 1);
 
+    }
+
+    // Remove all the sprites
+    empty() {
+        for (var i = this.length - 1; i >= 0; --i) {
+            this.remove(this.sprites[i]);
+        }
     }
 }

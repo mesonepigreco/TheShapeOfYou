@@ -1,7 +1,7 @@
-import Geometry from "./geometry.js";
+import {Geometry} from "./geometry.js";
 
 export default class Square extends Geometry {
-    constructor(x, y, kind, edge_length, canvas) {
+    constructor(x, y, edge_length, kind, canvas) {
         super(x, y, kind, canvas);
 
         this.vertices = [

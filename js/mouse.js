@@ -17,12 +17,12 @@ export default class Mouse {
 
         canvas.addEventListener("mousedown", (event) => {
             self.is_clicked = true;
-            console.log("Clicked:", self.is_clicked);
+            //console.log("Clicked:", self.is_clicked);
         });
 
         document.addEventListener("mouseup", (event) => {
             self.is_clicked = false;
-            console.log("Clicked:", self.is_clicked);
+            //console.log("Clicked:", self.is_clicked);
         });
     }
 }

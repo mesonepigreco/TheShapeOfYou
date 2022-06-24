@@ -8,8 +8,8 @@ canvas {
     transform: translate(-50%, -50%);
     top: 50%;
     left: 50%;
-    width: 800px;
-    height: 600px;
+    width: 1200px;
+    height: 900px;
     outline: black 3px solid;
 }
 
@@ -19,6 +19,6 @@ canvas {
     top:50%;
     left: 50%;
     font-family: "press-start";
-    font-size: 25px;
+    font-size: 42px;
     opacity: 0;
 }
