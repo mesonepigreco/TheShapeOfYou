@@ -1,0 +1,24 @@
+@font-face {
+    font-family: "press-start";
+    src: url("PressStart2P-Regular.ttf") format("truetype");
+}
+
+canvas {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    top: 50%;
+    left: 50%;
+    width: 800px;
+    height: 600px;
+    outline: black 3px solid;
+}
+
+.central-writing {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    top:50%;
+    left: 50%;
+    font-family: "press-start";
+    font-size: 25px;
+    opacity: 0;
+}
