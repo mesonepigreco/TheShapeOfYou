@@ -67,6 +67,11 @@ export class Geometry {
         }
     }
 
+    init_player(canvas) {
+        this.kind = "player";
+        this.mouse_ctrl = new Mouse(canvas); 
+    }
+
     get n_edges() {
         return this.vertices.length;
     }
@@ -190,6 +195,14 @@ export class Geometry {
         }
     }
 
+    check_single_collision(sprite) {
+        // Check the cheap collision first
+        if (this.spherical_collide(sprite)) {
+            if(this.geometrical_collision(sprite))
+                return true;
+        } 
+        return false;
+    }
 
     check_collision(collision_group) {
         // Apply collision reactions
@@ -198,13 +211,8 @@ export class Geometry {
 
             if (sprite == this)
                 continue;
-
             
-            // Check the cheap collision first
-            if (this.spherical_collide(sprite)) {
-                    if(this.geometrical_collision(sprite))
-                    return true;
-            } 
+                if (this.check_single_collision(sprite)) return true;
         }
         return false;
     }

@@ -54,12 +54,17 @@ export default class World {
         let self = this;
 
         function pick(value) {
+            var position = {x: self.player.x, y: self.player.y};
             self.player.kill();
             if (value == "left") {
                 self.player = pick_element.choice1;
             } else {
                 self.player = pick_element.choice2;
             }
+            self.visible_sprites.add(self.player);
+
+            self.player.x = position.x;
+            self.player.y = position.y;
             pick_element.kill();
 
             self.pause = false;
@@ -70,8 +75,14 @@ export default class World {
             pick_menu.style.top = "-250%";
 
 
-            document.getElementById("pick-1").removeEventListener("click");
-            document.getElementById("pick-2").removeEventListener("click");
+            document.getElementById("pick-1").removeEventListener("click",() => {
+                pick("left");
+            } );
+            document.getElementById("pick-2").removeEventListener("click",() => {
+                pick("right");
+            });
+
+            console.log("PICKED!");
         }
         document.getElementById("pick-1").addEventListener("click", () => {
             pick("left");
@@ -86,9 +97,12 @@ export default class World {
         for (var i = 0; i < this.pick_sprites.length; ++i) {
             let sprite = this.pick_sprites.sprites[i];
 
-            if (this.player.check_collision(sprite)) {
+            if (this.player.check_single_collision(sprite)) {
                 // Open the pick menu
+                console.log("Collision!");
                 this.show_pick_menu(sprite);
+            } else {
+                console.log("NO Collision!");
             }
         }
     }
@@ -103,6 +117,8 @@ export default class World {
             this.camera.x = this.player.x - this.canvas.width / 2;
             this.camera.y = this.player.y - this.canvas.height / 2;
 
+            this.check_pick();
+
             // Check the death
             if (this.check_player_death()) {
                 return "death";
@@ -110,6 +126,9 @@ export default class World {
                 return "win";
             }
             return "idle";
+        } else {
+            console.log("PAUSE:", this.pause);
+            return "idle"
         }
     }
 
@@ -136,6 +155,7 @@ export default class World {
     }
 
     draw_perimeter() {
+        this.context.save();
         this.context.beginPath();
         
         for (var i = 0; i < this.perimeter.length; ++i) {
@@ -150,6 +170,8 @@ export default class World {
         this.context.lineWidth = 10;
         this.context.strokeStyle = '#ff0000';
         this.context.stroke();
+
+        this.context.restore();
     }
 
     reset() {
@@ -219,7 +241,7 @@ export default class World {
                 if ("picks" in world_data) {
                     for (var i = 0; i < world_data.picks.length; ++i) {
                         console.log("here:", world_data.picks[i]);
-                        let pick = new PickMe(world_data.picks[i]);
+                        let pick = new PickMe(world_data.picks[i], this.canvas);
                         this.pick_sprites.add(pick);
                         this.visible_sprites.add(pick);
                     }
@@ -297,10 +319,12 @@ function create_geometry_from_json(json_object, canvas) {
 
 
 export class PickMe extends Geometry{
-    constructor(json_object) {
+    constructor(json_object, canvas) {
         super(json_object.position[0],  json_object.position[1], "pick");
         this.choice1 = create_geometry_from_json(json_object.left);
         this.choice2 = create_geometry_from_json(json_object.right);
+        this.choice1.init_player(canvas);
+        this.choice2.init_player(canvas);
 
         this.texts = [json_object.left.geometry, json_object.right.geometry];
 
@@ -351,16 +375,20 @@ export class PickMe extends Geometry{
 
     draw(context, camera) {
         // Draw a text 
+        this.choice2.draw(context, camera);
+        this.choice1.draw(context, camera);
+
+        context.save();
         context.font = "24px press-start";
         context.fillText("Pick a shape", this.text_position.x - camera.x - this.text_width / 2, this.text_position.y - camera.y); 
         
-        this.choice1.draw(context, camera);
-        this.choice2.draw(context, camera);
 
         context.strokeStyle = "#222222";
         context.lineWidth = 4;
+        context.beginPath();
         context.moveTo(this.line_start.x - camera.x, this.line_start.y - camera.y);
         context.lineTo(this.line_end.x - camera.x, this.line_end.y - camera.y);
+        context.closePath();
         context.stroke();
 
         // Draw the vertices
@@ -373,5 +401,6 @@ export class PickMe extends Geometry{
         }
         context.closePath();
         context.stroke();
+        context.restore();
     }
 }
