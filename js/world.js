@@ -22,9 +22,24 @@ export default class World {
         this.pick_sprites = new SpriteGroup();
         this.perimeter = [];
 
+        let self = this;
+
+        this.background_loaded = false;
+        this.background_img = new Image();
+        this.background_img.src = "assets/background_tiles.png"
+        this.background_img.addEventListener("load", () => {
+            self.background_loaded = true;
+        });
+
         this.pause = false;
 
         this.pull_spring = 200;
+    }
+
+    ready() {
+        if (!this.background_loaded) return false;
+
+        return true;
     }
 
     show_pick_menu(pick_element) {
@@ -154,6 +169,29 @@ export default class World {
         return false;
     }
 
+    draw_background() {
+        let bkg_width = this.background_img.width;
+        let bkg_height = this.background_img.height;
+
+        var parallax_distance = 1;
+
+        var ox = -this.camera.x * parallax_distance;
+        var oy =  -this.camera.y * parallax_distance;
+        ox = ox % bkg_width - bkg_width;
+        oy = oy % bkg_height - bkg_height;
+
+        var sx = ox;
+
+        while (sx < this.canvas.width) {
+            var sy = oy;
+            while(sy < this.canvas.width) {
+                this.context.drawImage(this.background_img, Math.floor(sx), Math.floor(sy));
+                sy += bkg_height;
+            }
+            sx += bkg_width;
+        }
+    }
+
     draw_perimeter() {
         this.context.save();
         this.context.beginPath();
@@ -256,6 +294,9 @@ export default class World {
     draw() {
         // Clear the area
         this.context.clearRect(0,0, this.canvas.width, this.canvas.height);
+
+        // Draw the background
+        this.draw_background();
 
         // Draw the perimeter
         this.draw_perimeter();
