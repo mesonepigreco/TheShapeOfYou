@@ -38,6 +38,7 @@ div.menu {
 div.menu > .text-description {
     display: block;
     text-align: center;
+    color : rgb(200, 195, 195);
     padding-bottom: 50px;
 }
 

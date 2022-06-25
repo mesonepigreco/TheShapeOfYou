@@ -3,6 +3,7 @@ import Square from "./square.js";
 import SpriteGroup from "./groups.js";
 import Sphere from "./sphere.js";
 import {Geometry, modulus} from "./geometry.js"
+import { Stream } from "./stream.js";
 
 export default class World {
     constructor(canvas, context) {
@@ -20,6 +21,7 @@ export default class World {
         this.collision_sprites = new SpriteGroup();
         this.winning_sprites = new SpriteGroup();
         this.pick_sprites = new SpriteGroup();
+        this.stream_sprites = new SpriteGroup();
         this.perimeter = [];
 
         let self = this;
@@ -61,9 +63,14 @@ export default class World {
 
         // Add the images to the correct object
         const img_src = "assets/" + pick_element.texts[0] + ".png";
-        document.getElementById("img-1").src = img_src;
+        const img1 = document.getElementById("img-1");
+        img1.src = img_src;
+        img1.width = pick_element.choice1.edge_size;
+
         const img_src2 = "assets/" +  pick_element.texts[1] + ".png";
-        document.getElementById("img-2").src = img_src2;
+        const img2 = document.getElementById("img-2");
+        img2.src = img_src2;
+        img2.width = pick_element.choice2.edge_size;
 
         // Add the event listener
         let self = this;
@@ -114,10 +121,10 @@ export default class World {
 
             if (this.player.check_single_collision(sprite)) {
                 // Open the pick menu
-                console.log("Collision!");
+                //console.log("Collision!");
                 this.show_pick_menu(sprite);
             } else {
-                console.log("NO Collision!");
+                //console.log("NO Collision!");
             }
         }
     }
@@ -125,7 +132,7 @@ export default class World {
     update(deltaTime) {
         //this.show_pick_menu("triangle", "square")
         if (! this.pause) {
-            this.visible_sprites.update(deltaTime, this.camera, this.collision_sprites, this.perimeter);
+            this.visible_sprites.update(deltaTime, this.camera, this.collision_sprites, this.perimeter, this.stream_sprites);
 
             // Pulling:
             // Update the camera
@@ -220,6 +227,7 @@ export default class World {
         this.collision_sprites.empty();
         this.winning_sprites.empty();
         this.pick_sprites.empty();
+        this.stream_sprites.empty();
 
         this.player = null;
         this.ready = false;
@@ -285,6 +293,14 @@ export default class World {
                     }
                 }
 
+                if ("streams" in world_data) {
+                    for (var i = 0; i < world_data.streams.length; ++i) {
+                        let stream = create_geometry_from_json(world_data.streams[i]);
+                        this.visible_sprites.add(stream);
+                        this.stream_sprites.add(stream);
+                    }
+                }
+
                 // Set the ready flag
                 self.ready = true;
             }
@@ -315,24 +331,39 @@ function create_geometry_from_json(json_object, canvas) {
         position.y = json_object.position[1];
     }
 
-    if (json_object.geometry === "triangle") {
-        my_object = new Triangle(position.x,
-            position.y, json_object.edge_size, 
-            json_object.kind,
-            canvas);
-    } else if (json_object.geometry === "square") {
-        my_object = new Square(position.x,
-            position.y, json_object.edge_size, 
-            json_object.kind,
-            canvas);
-    } else if (json_object.geometry === "sphere") {
-        my_object = new Sphere(position.x,
-            position.y, json_object.edge_size, 
-            json_object.kind,
+    if (json_object.kind === "stream") {
+        my_object = new Stream(position.x, 
+            position.y, json_object.direction,
+            json_object.push_force, json_object.edge_size, json_object.depth,
             canvas);
     } else {
-        console.log("Error while parsing unkwnown geometry ", json_object.geometry);
-        return null;
+
+        if (json_object.geometry === "triangle") {
+            my_object = new Triangle(position.x,
+                position.y, json_object.edge_size, 
+                json_object.kind,
+                canvas);
+        } else if (json_object.geometry === "square") {
+            my_object = new Square(position.x,
+                position.y, json_object.edge_size, 
+                json_object.kind,
+                canvas);
+        } else if (json_object.geometry === "sphere") {
+            my_object = new Sphere(position.x,
+                position.y, json_object.edge_size, 
+                json_object.kind,
+                canvas);
+        } else {
+            console.log("Error while parsing unkwnown geometry ", json_object.geometry);
+            return null;
+        }
+
+
+        if ("balance" in json_object) {
+            if (json_object.balance) 
+                my_object.balance();
+        } else
+            my_object.balance();
     }
 
 
@@ -348,13 +379,6 @@ function create_geometry_from_json(json_object, canvas) {
     if ("color" in json_object) {
         my_object.color = json_object.color;
     }
-
-    if ("balance" in json_object) {
-        if (json_object.balance) 
-            my_object.balance();
-    } else
-        my_object.balance();
-
     return my_object;
 }
 
@@ -415,12 +439,31 @@ export class PickMe extends Geometry{
     }
 
     draw(context, camera) {
+        // Draw the path
+        context.beginPath();
+
+        context.moveTo(this.get_global_vertex(0).x - camera.x, this.get_global_vertex(0).y - camera.y);
+
+        for (var i = 1; i < this.n_vertices; ++i) {
+            context.lineTo(this.get_global_vertex(i).x - camera.x, this.get_global_vertex(i).y - camera.y);
+        }
+        context.closePath();
+        context.stroke();
+
+        // Darken the background inside
+        context.save();
+        context.globalCompositeOperation = "multiply";
+        context.fillStyle = "#aaa";
+        context.fill();
+        context.restore();
+
         // Draw a text 
         this.choice2.draw(context, camera);
         this.choice1.draw(context, camera);
 
         context.save();
         context.font = "24px press-start";
+        context.fillStyle = "#eee";
         context.fillText("Pick a shape", this.text_position.x - camera.x - this.text_width / 2, this.text_position.y - camera.y); 
         
 
@@ -433,15 +476,6 @@ export class PickMe extends Geometry{
         context.stroke();
 
         // Draw the vertices
-        context.beginPath();
-
-        context.moveTo(this.get_global_vertex(0).x - camera.x, this.get_global_vertex(0).y - camera.y);
-
-        for (var i = 1; i < this.n_vertices; ++i) {
-            context.lineTo(this.get_global_vertex(i).x - camera.x, this.get_global_vertex(i).y - camera.y);
-        }
-        context.closePath();
-        context.stroke();
         context.restore();
     }
 }

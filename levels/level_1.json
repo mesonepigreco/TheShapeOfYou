@@ -1,36 +1,46 @@
 {
     "perimeter" : [ 
-        [-600, -600], 
-        [600, -600],
-        [100, 100],
-        [-100, 100]
+        [-700, -200], 
+        [-700, 100],
+        [-20, 100],
+        [-20, 200],
+        [-700, 200],
+        [-700, 500],
+        [700, 500],
+        [700, 200],
+        [20, 200],
+        [20, 100],
+        [700, 100],
+        [700, -200]
     ],
     "player" : {
-        "position" : [0,0],
+        "position" : [0,300],
         "geometry" : "triangle",
-        "edge_size" : 100,
+        "edge_size" : 80,
         "kind" : "player",
         "color" : "#00aa00"
     },
 
     "target" : {
-        "position" : [100, -200],
+        "position" : [0, -50],
         "geometry" : "sphere",
-        "edge_size" : 50,
+        "edge_size" : 40,
         "kind" : "target",
         "color" : "#333"
     },
 
     "picks" : [
         {
-            "position" : [100, -400],
+            "position" : [450, 370],
             "left" : {
                 "geometry" : "square",
-                "edge_size" : 50
+                "edge_size" : 20,
+                "color" : "#00aa00"
             }, 
             "right" : {
-                "geometry" : "triangle",
-                "edge_size" : 70
+                "geometry" : "square",
+                "edge_size" : 100,
+                "color" : "#00aa00"
             }
         }
     ],
@@ -45,5 +55,17 @@
             "pull_force" : [0, -800],
             "color" : "#0000ff"
         }
+    ],
+
+    "streams" : [
+        {
+            "kind" : "stream",
+            "position" : [-300, 200],
+            "direction" : {"x" : 0, "y": 1},
+            "push_force" : 5050,
+            "edge_size" : 200,
+            "depth" : 300
+        }
     ]
+
 }

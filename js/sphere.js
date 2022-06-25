@@ -4,13 +4,14 @@ export default class Sphere extends Geometry {
     constructor(x, y, radius, kind, canvas, groups = []) {
         super(x, y, kind, canvas, groups);
 
+        this.edge_size = radius;
         this.radius = radius;
         this.hitbox = 1;
         this.collide_radius = radius * this.hitbox;
     }
 
-    update(deltaTime, camera, collision, perimeter) {
-        super.update(deltaTime, camera, collision, perimeter);
+    update(deltaTime, camera, collision, perimeter, stream) {
+        super.update(deltaTime, camera, collision, perimeter, stream);
 
         this.collide_radius = this.radius * this.hitbox;
     }

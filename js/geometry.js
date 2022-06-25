@@ -7,7 +7,7 @@ export class Geometry {
         this.y = y;
         this.kind = kind;
         this.collide_radius = 0;
-        this.weight = 100;
+        this.mass = 1;
         this.static = false;
         this.level_perimeter = null;
 
@@ -109,7 +109,7 @@ export class Geometry {
         }
     }
 
-    update(deltaTime, camera, collision_group, perimeter) {
+    update(deltaTime, camera, collision_group, perimeter, stream_group) {
 
         var dt = deltaTime / 1000; // Seconds
 
@@ -137,19 +137,29 @@ export class Geometry {
                 this.mouse_velocity.x = 0;
                 this.mouse_velocity.y = 0;
             }
-            this.acceleration.x = this.mouse_velocity.x;
-            this.acceleration.y = this.mouse_velocity.y;
+            this.acceleration.x = this.mouse_velocity.x / this.mass;
+            this.acceleration.y = this.mouse_velocity.y / this.mass;
+
+            for (var i = 0; i < stream_group.length; ++i) {
+                let stream = stream_group.sprites[i];
+                let stream_force = stream.player_collision(this);
+                this.acceleration.x += stream_force.x / this.mass;
+                this.acceleration.y += stream_force.y / this.mass;
+            }
+    
+            console.log("ACC", this.acceleration);
         }
 
+
         // TODO: Update physics and accelerations
-        this.acceleration.x += this.pull_force.x;
-        this.acceleration.y += this.pull_force.y; 
+        this.acceleration.x += this.pull_force.x / this.mass;
+        this.acceleration.y += this.pull_force.y / this.mass; 
 
         // Friction
         const v_norm = modulus(this.velocity);
         if (v_norm > 0) {
-            this.acceleration.x -= this.velocity.x * this.viscous_friction + Math.sign(this.velocity.x) * this.dynamic_friction;
-            this.acceleration.y -= this.velocity.y * this.viscous_friction + Math.sign(this.velocity.x) * this.dynamic_friction;
+            this.acceleration.x -= this.velocity.x * this.viscous_friction + Math.sign(this.velocity.x) * this.dynamic_friction / this.mass;
+            this.acceleration.y -= this.velocity.y * this.viscous_friction + Math.sign(this.velocity.x) * this.dynamic_friction / this.mass;
         }
 
         this.velocity.x += this.acceleration.x * dt;

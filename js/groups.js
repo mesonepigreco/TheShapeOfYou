@@ -8,9 +8,12 @@ export default class SpriteGroup {
         return this.sprites.length;
     }
 
-    draw(context, camera) {
+    draw(context, camera) { 
         // Sort the sprites
         function sorting_rules(a,b) {
+            if (a.kind === "stream") return 1;
+            if (b.kind === "stream") return -1;
+
             if (a.kind === "player") return 1;
             if (b.kind === "player") return -1;
 
@@ -26,10 +29,10 @@ export default class SpriteGroup {
         }
     }
 
-    update(deltaTime, camera, collisions, perimeter) {
+    update(deltaTime, camera, collisions, perimeter, streams) {
         for (var i = 0; i < this.sprites.length; ++i) {
             let sprite = this.sprites[i];
-            sprite.update(deltaTime, camera, collisions, perimeter);
+            sprite.update(deltaTime, camera, collisions, perimeter, streams);
         }
     }
 
