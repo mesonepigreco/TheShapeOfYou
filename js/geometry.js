@@ -1,5 +1,6 @@
 import Mouse from "./mouse.js";
 import Group  from "./groups.js";
+import {draw_a_glow} from "./light.js";
 
 export class Geometry {
     constructor(x, y, kind, canvas, groups = []) {
@@ -408,8 +409,9 @@ export class Geometry {
     draw(context, camera) {
         context.save();
 
+        let pos = {x : this.x - camera.x, y :  this.y - camera.y};
         // Transform in the current position
-        context.translate(this.x - camera.x, this.y - camera.y);
+        context.translate(pos.x, pos.y);
         context.rotate(this.rotation_angle);
         context.fillStyle = this.color;
         context.lineWidth = 1;
@@ -426,6 +428,11 @@ export class Geometry {
         context.fill();
         context.stroke();
         context.restore();
+
+        // Draw a glow around the player
+        if (this.kind === "player") {
+            draw_a_glow(context, this.collide_radius * 1.3, pos);
+        }
     }
 } 
 

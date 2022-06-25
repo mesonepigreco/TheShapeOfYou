@@ -33,8 +33,7 @@
         "position" : [0, -50],
         "geometry" : "sphere",
         "edge_size" : 40,
-        "kind" : "target",
-        "color" : "#333"
+        "kind" : "target"
     },
 
     "picks" : [

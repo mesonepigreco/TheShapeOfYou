@@ -4,13 +4,15 @@
 }
 
 canvas {
+    outline: black 3px solid;
+}
+canvas, div.ui {
     position: absolute;
     transform: translate(-50%, -50%);
-    top: 50%;
-    left: 50%;
     width: 1200px;
+    left: 50%;
     height: 900px;
-    outline: black 3px solid;
+    top: 50%;
 }
 
 .central-writing {
@@ -53,6 +55,8 @@ div.menu > div.menu-buttons {
     width: 40%;
     padding-top: 1.5%;
     padding-bottom: 1.5%;
+    background-color: rgba(226, 238, 154, 0.4);
+    color: white;
 }
 
 img.character {
@@ -66,11 +70,31 @@ img.btn-img {
 button {
     transition-duration: 0.4s;
     border-radius: 2rem;
-    background-color: rgba(226, 238, 154, 0.4);
-    color: white;
 }
   
 button:hover {
     background-color: rgba(255, 255, 255, 0.1); /* Green */
+    color: white;
+}
+
+
+#restart-level {
+    position: absolute;
+    transform: translate(0, -100%);
+    left:calc(50% - 600px);
+    top : calc(50% + 450px);
+}
+#main-menu {
+    position: absolute;
+    transform: translate(-100%, -100%);
+    left:calc(50% + 600px);
+    top : calc(50% + 450px);
+}
+
+button.ui {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+button.ui:hover {
+    background-color: rgba(255, 255, 255, 0.4); /* Green */
     color: white;
 }

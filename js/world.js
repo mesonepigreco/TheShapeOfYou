@@ -22,6 +22,7 @@ export default class World {
         };
 
         this.level_loaded = false;
+        this.level = "";
         this.player = null;
         this.spawn_point = {x : 0, y: 0};
         this.target = null;
@@ -69,6 +70,20 @@ export default class World {
         this.pull_spring = 200;
 
         this.glowing_generation_rate = 200;
+
+        this.restarting = false;
+
+
+        // Setup the restart level function
+        function restart_level() {
+            self.restarting = true;
+            self.end_trigger = Date.now();
+            console.log("Restarting");
+        }
+
+        document.getElementById("restart-level").addEventListener("click", (event) => {
+            restart_level();
+        });
     }
 
     ready() {
@@ -78,8 +93,6 @@ export default class World {
 
         return true;
     }
-
-
 
     show_pick_menu(pick_element) {
         // Show the menu that decides who is the player
@@ -329,8 +342,9 @@ export default class World {
             } 
         }
 
-        if (this.end_trigger > 0 && time - this.end_trigger > 1.5 * this.transition_duration)
+        if (this.end_trigger > 0 && time - this.end_trigger > 1.5 * this.transition_duration) {
             return true;
+        }
         return false;
     }
 
@@ -401,6 +415,7 @@ export default class World {
 
     create_level(json_url, clean = true) {
         this.level_loaded = false;
+        this.level = json_url;
         let self = this;
 
         console.log("Loading:", json_url);

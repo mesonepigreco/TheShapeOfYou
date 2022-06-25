@@ -1,5 +1,5 @@
 import { Geometry } from "./geometry.js";
-
+import {draw_a_glow} from "./light.js";
 export class Switch extends Geometry {
     constructor(x, y, image_off, image_on, deactivate_id, canvas, groups = []) {
         console.log("HERE AALAL");
@@ -37,5 +37,12 @@ export class Switch extends Geometry {
         if (this.is_on) image = this.image_on;
 
         context.drawImage(image, pos.x - this.width / 2, pos.y - this.height / 2);
+
+        // Add a glowing circle if it is on
+        if (this.is_on) {    
+            var total_radius = Math.max(this.width, this.height)* 1.2;
+            draw_a_glow(context, total_radius, pos, "#222");
+        }
+
     }
 }

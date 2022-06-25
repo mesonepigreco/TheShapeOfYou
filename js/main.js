@@ -6,6 +6,8 @@ import World from "./world.js";
 const canvas = document.getElementById("game-screen");
 const context = canvas.getContext("2d");
 
+
+
 const world = new World(canvas, context);
 
 // Generate the world from the level
@@ -40,7 +42,9 @@ function animation(timeStamp) {
         you_lost.style.left = "50%";
         you_lost.style.top = "50%";
     } else if (status === "win") {
-        current_level++;
+        if (!world.restarting)
+            current_level++;
+        world.restarting = false;
 
         console.log("STATUS:", status, "LEVEL:", current_level);
 
@@ -54,7 +58,7 @@ function animation(timeStamp) {
         you_won.style.opacity = 1;
         you_won.style.left = "50%";
         you_won.style.top = "50%";*/
-    }
+    } 
 
     requestAnimationFrame(animation);
 }
