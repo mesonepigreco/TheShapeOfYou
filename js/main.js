@@ -16,6 +16,7 @@ const you_won = document.getElementById("you-won");
 
 var oldTime = 0;
 let status = "idle";
+
 function animation(timeStamp) {
     var deltaT = timeStamp - oldTime;
 

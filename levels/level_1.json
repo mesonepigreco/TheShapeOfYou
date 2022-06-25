@@ -1,0 +1,49 @@
+{
+    "perimeter" : [ 
+        [-600, -600], 
+        [600, -600],
+        [100, 100],
+        [-100, 100]
+    ],
+    "player" : {
+        "position" : [0,0],
+        "geometry" : "triangle",
+        "edge_size" : 100,
+        "kind" : "player",
+        "color" : "#00aa00"
+    },
+
+    "target" : {
+        "position" : [100, -200],
+        "geometry" : "sphere",
+        "edge_size" : 50,
+        "kind" : "target",
+        "color" : "#333"
+    },
+
+    "picks" : [
+        {
+            "position" : [100, -400],
+            "left" : {
+                "geometry" : "square",
+                "edge_size" : 50
+            }, 
+            "right" : {
+                "geometry" : "triangle",
+                "edge_size" : 70
+            }
+        }
+    ],
+
+    "enemies" : [
+        {
+            "kind" : "bouncing",
+            "geometry" : "square",
+            "position" : [-250, -300],
+            "edge_size" : 120,
+            "spin_velocity" : 1,
+            "pull_force" : [0, -800],
+            "color" : "#0000ff"
+        }
+    ]
+}

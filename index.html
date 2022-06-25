@@ -6,11 +6,24 @@
         <link rel="stylesheet" type="text/css" href="style.css" />
     </head>
     <body>
+        <!--
+        <div id="img-stick"><img class="character" src="assets/Stick.png"></div>
+        <div id="img-triangle"><img class="character" src="assets/Triangle.png"></div>
+        <div id="img-square"><img class="character" src="assets/Square.png"></div>
+        <div id="img-rhombus"><img class="character" src="assets/SmallRhombus.png"></div>
+        -->
         <div>
             <!-- Here add the menu buttons -->
             <canvas id="game-screen" width="1200px" height="900px"></canvas>
             <span class="central-writing" id="you-lost">You Lost!</span>
             <span class="central-writing" id="you-won">You Won!</span>
+            <div class="menu" id="pick-a-side">
+                <span class="text-description">Pick a shape</span>
+                <div class="menu-buttons">
+                    <button id="pick-1"><img class="btn-img" id="img-1"></button>
+                    <button id="pick-2"><img class="btn-img" id="img-2"></button>
+                </div>
+            </div>
         </div>
 
         <script type="module" src="js/main.js"></script>

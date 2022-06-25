@@ -230,6 +230,27 @@ export class Geometry {
         }
     }
 
+    get_width_height(ask_width) {
+        var total = 0;
+        for(var i = 0; i < this.n_vertices; ++i) {
+            var abs_value = 0;
+            if (ask_width)
+                abs_value = this.vertices.x;
+            else
+                abs_value = this.vertices.y;
+             
+            if (Math.abs(abs_value) > total) total = Math.abs(abs_value);
+        }
+        return total;
+    }
+
+    get_width() {
+        return this.get_width_height(true);
+    }
+    get_height() {
+        return this.get_width_height(false);
+    }
+
     spherical_collide(other) {
         // This method enables collision between geometries
 
@@ -251,7 +272,7 @@ export class Geometry {
                 var next = (j+1) % perimeter.length;
 
                 if (segment_intersect(my_edge[0], my_edge[1], perimeter[j], perimeter[next])) {
-                    console.log("Collision:", my_edge, " with:", [perimeter[j], perimeter[next]]);
+                    //console.log("Collision:", my_edge, " with:", [perimeter[j], perimeter[next]]);
                     return true;
                 }
             }
