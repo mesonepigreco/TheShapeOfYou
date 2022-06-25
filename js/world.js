@@ -4,6 +4,8 @@ import SpriteGroup from "./groups.js";
 import Sphere from "./sphere.js";
 import {Geometry, modulus} from "./geometry.js"
 import { Stream } from "./stream.js";
+import { destroy_geometry, GlowingSphere } from "./particles.js";
+import { Switch } from "./switch.js";
 
 export default class World {
     constructor(canvas, context) {
@@ -14,15 +16,28 @@ export default class World {
             y : 0
         };
 
-        this.ready = false;
+        this.camera_velocity = {
+            x : 0,
+            y : 0
+        };
+
+        this.level_loaded = false;
         this.player = null;
+        this.spawn_point = {x : 0, y: 0};
         this.target = null;
         this.visible_sprites = new SpriteGroup();
         this.collision_sprites = new SpriteGroup();
         this.winning_sprites = new SpriteGroup();
         this.pick_sprites = new SpriteGroup();
         this.stream_sprites = new SpriteGroup();
+        this.glowing_sprites = new SpriteGroup();
+        this.switch_sprites = new SpriteGroup();
         this.perimeter = [];
+        this.camera_speed = 5;
+
+        this.start_trigger = -1;
+        this.end_trigger = -1;
+        this.transition_duration = 800;
 
         let self = this;
 
@@ -33,16 +48,38 @@ export default class World {
             self.background_loaded = true;
         });
 
+        this.switch_loaded = 0;
+        this.level_loaded = false;
+        this.switch_image_on = new Image();
+        this.switch_image_on.src = "assets/switch_on.png";
+        this.switch_image_on.addEventListener("load", () => {
+            self.switch_loaded++;
+        });
+        this.switch_image_off = new Image();
+        this.switch_image_off.src = "assets/switch_off.png";
+        this.switch_image_off.addEventListener("load", () => {
+            self.switch_loaded++;
+        });
+
         this.pause = false;
+        this.death_trigger = -1;
+        this.death_timeout = 2500;
+        this.start_trigger = -1;
 
         this.pull_spring = 200;
+
+        this.glowing_generation_rate = 200;
     }
 
     ready() {
         if (!this.background_loaded) return false;
+        if (this.switch_loaded !== 2) return false;
+        if (!this.level_loaded) return false;
 
         return true;
     }
+
+
 
     show_pick_menu(pick_element) {
         // Show the menu that decides who is the player
@@ -87,6 +124,8 @@ export default class World {
 
             self.player.x = position.x;
             self.player.y = position.y;
+            self.spawn_point.x = position.x;
+            self.spawn_point.y = position.y;
             pick_element.kill();
 
             self.pause = false;
@@ -104,7 +143,6 @@ export default class World {
                 pick("right");
             });
 
-            console.log("PICKED!");
         }
         document.getElementById("pick-1").addEventListener("click", () => {
             pick("left");
@@ -129,17 +167,121 @@ export default class World {
         }
     }
 
+    draw_transition(trigger, reverse = true) {
+        var time = Date.now() - trigger;
+
+        if (trigger > 0 && time < this.transition_duration*2) {
+            let pos = {
+                x : this.player.x - this.camera.x,
+                y : this.player.y - this.camera.y
+            };
+
+
+            this.context.save();
+
+            let condition = time < this.transition_duration
+            if (!reverse) condition = time > this.transition_duration;
+
+            if (condition) {
+                var factor =  ( 1 - time / this.transition_duration);
+                if (!reverse) factor *= -1
+                var total_radius = this.canvas.width * factor;
+
+                // Create a gradient
+                var gradient = this.context.createRadialGradient(pos.x, pos.y, 
+                    total_radius*.9, pos.x, pos.y, total_radius);
+
+                console.log("DRAWING");
+        
+                gradient.addColorStop(0, "rgba(4,4,4,0.0)");
+                gradient.addColorStop(0.9, "rgba(0,0,0,0.8)");
+                gradient.addColorStop(0.95, "rgba(0,0,0,1)");
+                gradient.addColorStop(1, "rgba(0,0,0,1)");
+        
+                this.context.fillStyle = gradient;
+            } else {
+                this.context.fillStyle = "#000";
+            }
+            this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.context.restore();
+        }
+    }
+
+    update_switches() {
+        // Check the collision between the player and all the switches
+        for (var i = 0; i < this.switch_sprites.length; ++i) {
+            let swtc = this.switch_sprites.sprites[i];
+            if (swtc.is_on) {
+                if (this.player.check_single_collision(swtc)) {
+                    swtc.is_on = false;
+                    this.stream_sprites.sprites[swtc.deactivate_id].active = false;
+
+                    console.log("SWITCH!");
+
+                    // TODO: play a sound
+                } 
+            }
+        }
+    }
+
+    update_spawn_glowing(deltaTime) {
+        /*
+        if (Math.random() < deltaTime / this.glowing_generation_rate) {
+            const rx = Math.random()*2. - 1;
+            const ry = Math.random()*2. - 1;
+            let particle = new GlowingSphere(this.player.x, this.player.y, this.canvas);
+            particle.viscous_friction = 0;//.001;
+            particle.dynamic_friction = 0;
+            this.glowing_sprites.add(particle);
+            particle.velocity.x = rx * 40.;
+            particle.velocity.y = ry * 40.;
+
+        }*/
+
+        for (var i = 0; i < this.stream_sprites.length; ++i) {
+            let stream = this.stream_sprites.sprites[i];
+            if (Math.random() < deltaTime / this.glowing_generation_rate) {
+                let r_pos = Math.random() - .5;
+                let vel_vect = Math.random() * stream.push_force / 20;
+
+                let position = {
+                    x : stream.x + stream.direction.y * r_pos * stream.edge_size,
+                    y : stream.y - stream.direction.x * r_pos * stream.edge_size
+                };
+
+
+                let particle = new GlowingSphere(position.x, position.y, this.canvas);
+                particle.radius_factor /= 2;
+                if (!stream.active) vel_vect /= 6;
+                particle.velocity.x = stream.direction.x * vel_vect;
+                particle.velocity.y = stream.direction.y * vel_vect;
+                this.glowing_sprites.add(particle);
+            }
+        }
+    }
+
     update(deltaTime) {
         //this.show_pick_menu("triangle", "square")
         if (! this.pause) {
             this.visible_sprites.update(deltaTime, this.camera, this.collision_sprites, this.perimeter, this.stream_sprites);
-
+            this.glowing_sprites.update(deltaTime, this.camera, this.collision_sprites, this.perimeter, this.stream_sprites);
             // Pulling:
             // Update the camera
-            this.camera.x = this.player.x - this.canvas.width / 2;
-            this.camera.y = this.player.y - this.canvas.height / 2;
+
+            var dt = deltaTime / 1000;
+
+            this.camera_velocity.x = this.camera_speed *( (this.player.x - this.canvas.width / 2) - this.camera.x);
+            this.camera_velocity.y = this.camera_speed *((this.player.y - this.canvas.height / 2) - this.camera.y);
+            this.camera.x += this.camera_velocity.x * dt
+            this.camera.y += this.camera_velocity.y * dt
+
 
             this.check_pick();
+
+            // Spawn glowing particle
+            this.update_spawn_glowing(deltaTime);
+
+            this.update_switches();
 
             // Check the death
             if (this.check_player_death()) {
@@ -155,10 +297,25 @@ export default class World {
     }
 
     check_player_death() {
-        return this.player.check_collision(this.collision_sprites) || this.player.collide_with_perimeter(this.perimeter);
+        if (this.player.check_collision(this.collision_sprites) || this.player.collide_with_perimeter(this.perimeter)) {
+            destroy_geometry(this.player, this.visible_sprites);
+            this.player.kill();
+            this.player.velocity.x = 0;
+            this.player.velocity.y = 0;
+            this.death_trigger = Date.now();
+        }
+
+        if (this.death_trigger > 0 && Date.now() - this.death_trigger > this.death_timeout) {
+            this.player.relive([this.visible_sprites]);
+            this.player.x = this.spawn_point.x;
+            this.player.y = this.spawn_point.y;
+            this.death_trigger = -1;
+        } 
+        return false;
     }
 
     check_player_win() {
+        let time = Date.now();
         if (this.player.spherical_collide(this.target)) {
             let distance = {
                 x : this.target.x - this.player.x,
@@ -167,12 +324,13 @@ export default class World {
             this.player.pull_force.x = distance.x * this.pull_spring;
             this.player.pull_force.y = distance.y * this.pull_spring;
 
-            if (modulus(distance) < 5 && modulus(this.player.velocity) < 1) {
-                return true;
+            if (modulus(distance) < 5 && modulus(this.player.velocity) < 1 && this.end_trigger < 0) {
+                this.end_trigger = time;
             } 
-
-            
         }
+
+        if (this.end_trigger > 0 && time - this.end_trigger > 1.5 * this.transition_duration)
+            return true;
         return false;
     }
 
@@ -228,14 +386,24 @@ export default class World {
         this.winning_sprites.empty();
         this.pick_sprites.empty();
         this.stream_sprites.empty();
+        this.glowing_sprites.empty();
+        this.switch_sprites.empty();
+
+        this.transition_trigger = -1;
+        this.end_trigger = -1;
+        this.death_trigger = -1;
+        this.start_trigger = -1;
 
         this.player = null;
-        this.ready = false;
+        this.level_loaded = false;
+        this.pause = false;
     }
 
     create_level(json_url, clean = true) {
-        this.ready = false;
+        this.level_loaded = false;
         let self = this;
+
+        console.log("Loading:", json_url);
 
         // Polish the level
         if (clean) this.reset();
@@ -262,9 +430,23 @@ export default class World {
                 // Generate the player
                 if ("player" in world_data) {
                     this.player = create_geometry_from_json(world_data.player, this.canvas);
+                    this.spawn_point.x = this.player.x;
+                    this.spawn_point.y = this.player.y;
                     this.visible_sprites.add(this.player);
                 } else {
                     console.log("Player not found in ", json_url);
+                }
+
+                if ("switches" in world_data) {
+                    for (var i = 0; i < world_data.switches.length; ++i) {
+                        let my_switch = new Switch(world_data.switches[i].position[0],
+                            world_data.switches[i].position[1],
+                            this.switch_image_off, this.switch_image_on, 
+                            world_data.switches[i].deactivate_id,
+                            this.canvas);
+                        this.switch_sprites.add(my_switch);
+                        this.visible_sprites.add(my_switch);
+                    }
                 }
 
                 if ("enemies" in world_data) {
@@ -302,9 +484,11 @@ export default class World {
                 }
 
                 // Set the ready flag
-                self.ready = true;
+                self.level_loaded = true;
             }
         );
+
+
     }
 
     draw() {
@@ -314,11 +498,26 @@ export default class World {
         // Draw the background
         this.draw_background();
 
+        // Add a layer of darkness
+        this.context.save();
+        this.context.globalCompositeOperation = "multiply";
+        this.context.fillStyle = "#ccc";
+        this.context.fillRect(0,0, this.canvas.width, this.canvas.height);
+        this.context.restore();
+
         // Draw the perimeter
         this.draw_perimeter();
 
         // Draw the visilbe sprites
         this.visible_sprites.draw(this.context, this.camera);
+
+        // Draw the glowing
+        this.glowing_sprites.draw(this.context, this.camera);
+
+        // Draw cinematic out
+        this.draw_transition(this.end_trigger);
+        this.draw_transition(this.start_trigger, false);
+
     }
 }
 
@@ -378,6 +577,8 @@ function create_geometry_from_json(json_object, canvas) {
     }
     if ("color" in json_object) {
         my_object.color = json_object.color;
+    } if ("mass" in json_object) {
+        my_object.mass = json_object.mass;
     }
     return my_object;
 }
@@ -412,9 +613,6 @@ export class PickMe extends Geometry{
         this.max_height = Math.max(...tot_vertices_y);
         this.min_height = Math.min(...tot_vertices_y);
 
-        console.log("choices:", this.choice1, this.choice2);
-        console.log("vertices:", tot_vertices_y);
-        console.log("HEGHT:", this.max_height, this.min_height);
 
         this.text_position = {
             x: this.x,

@@ -11,6 +11,11 @@ export default class SpriteGroup {
     draw(context, camera) { 
         // Sort the sprites
         function sorting_rules(a,b) {
+            if (a.kind === b.kind) return 0;
+
+            if (a.kind === "particle") return 1;
+            if (b.kind === "particle") return -1;
+
             if (a.kind === "stream") return 1;
             if (b.kind === "stream") return -1;
 

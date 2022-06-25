@@ -16,8 +16,8 @@ canvas {
 .central-writing {
     position: absolute;
     transform: translate(-50%, -50%);
-    top:50%;
-    left: 50%;
+    top:-350%;
+    left: -350%;
     font-family: "press-start";
     font-size: 42px;
     opacity: 0;
@@ -61,4 +61,16 @@ img.character {
 
 img.btn-img {
     margin:auto;
+}
+
+button {
+    transition-duration: 0.4s;
+    border-radius: 2rem;
+    background-color: rgba(226, 238, 154, 0.4);
+    color: white;
+}
+  
+button:hover {
+    background-color: rgba(255, 255, 255, 0.1); /* Green */
+    color: white;
 }

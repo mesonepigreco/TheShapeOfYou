@@ -9,6 +9,7 @@ export class Stream extends Geometry {
         this.push_force = push_force;
         this.edge_size = edge_size;
         this.depth = depth;
+        this.active = true;
 
         var mod = modulus(direction);
         this.direction.x /= mod;
@@ -17,12 +18,14 @@ export class Stream extends Geometry {
 
     player_collision(player) { // Returns the pull force on the player
         // Redefine the in the reference of the stream
-        let vector = {x :  player.x - this.x , y: player.y - this.y};
-        var d_ver = scalar_product(vector, this.direction);
-
         let pull_force = {
             x : 0, y : 0
         };
+
+        if (!this.active) return pull_force;
+
+        let vector = {x :  player.x - this.x , y: player.y - this.y};
+        var d_ver = scalar_product(vector, this.direction);
 
 
         if (d_ver < 0 || d_ver > this.depth) return pull_force;
@@ -64,25 +67,27 @@ export class Stream extends Geometry {
         
 
         // Draw the stream
-        context.globalCompositeOperation = "lighter";
-        context.beginPath();
-        context.moveTo(pos.x, pos.y);
-        pos.x += normal.x * this.edge_size / 2;
-        pos.y += normal.y * this.edge_size / 2;
-        context.lineTo(pos.x, pos.y);
-        pos.x += this.direction.x * this.depth;
-        pos.y += this.direction.y * this.depth;
-        context.lineTo(pos.x, pos.y);
-        pos.x -= normal.x * this.edge_size;
-        pos.y -= normal.y * this.edge_size;
-        context.lineTo(pos.x, pos.y);
-        pos.x -= this.direction.x * this.depth;
-        pos.y -= this.direction.y * this.depth;
-        context.lineTo(pos.x, pos.y);
+        if (this.active) {
+            context.globalCompositeOperation = "lighter";
+            context.beginPath();
+            context.moveTo(pos.x, pos.y);
+            pos.x += normal.x * this.edge_size / 2;
+            pos.y += normal.y * this.edge_size / 2;
+            context.lineTo(pos.x, pos.y);
+            pos.x += this.direction.x * this.depth;
+            pos.y += this.direction.y * this.depth;
+            context.lineTo(pos.x, pos.y);
+            pos.x -= normal.x * this.edge_size;
+            pos.y -= normal.y * this.edge_size;
+            context.lineTo(pos.x, pos.y);
+            pos.x -= this.direction.x * this.depth;
+            pos.y -= this.direction.y * this.depth;
+            context.lineTo(pos.x, pos.y);
 
-        context.closePath();
-        context.fillStyle = "#1111aa";
-        context.fill();
+            context.closePath();
+            context.fillStyle = "#1111aa";
+            context.fill();
+        }
         context.restore();
     }
 }

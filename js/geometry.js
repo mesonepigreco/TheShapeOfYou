@@ -10,10 +10,12 @@ export class Geometry {
         this.mass = 1;
         this.static = false;
         this.level_perimeter = null;
+        this.status = "alive";
 
         //this.max_speed = 500;
         this.slide_acceleration = 4500;
         this.viscous_friction = 7;
+        this.rot_friction = 0;
         this.dynamic_friction = 20;
 
         // Avoid double counting the collisions
@@ -22,7 +24,7 @@ export class Geometry {
 
         // The moovement is not triggered if the point is closer than 
         // This value
-        this.moving_radius = 10;
+        this.moving_radius = 5;
         this.hitbox = 0.95; // Fraction to be drawn but not trigger a collision
 
         this.vertices = [];
@@ -36,8 +38,8 @@ export class Geometry {
             this.mouse_ctrl = null;
 
         this.velocity  = {
-            x : 0,
-            y : 0
+            x : 0.,
+            y : 0.
         };
         this.spin_velocity = 0;
         this.mouse_velocity  = {
@@ -107,6 +109,15 @@ export class Geometry {
             let group = this.groups[i];
             group.remove(this);
         }
+        this.status = "killed";
+    }
+
+    relive(groups) {
+        this.status = "alive";
+        for (var i = groups.length-1; i >= 0 ; --i) {
+            let group = groups[i];
+            group.add(this);
+        }
     }
 
     update(deltaTime, camera, collision_group, perimeter, stream_group) {
@@ -137,8 +148,8 @@ export class Geometry {
                 this.mouse_velocity.x = 0;
                 this.mouse_velocity.y = 0;
             }
-            this.acceleration.x = this.mouse_velocity.x / this.mass;
-            this.acceleration.y = this.mouse_velocity.y / this.mass;
+            this.acceleration.x = this.mouse_velocity.x ;
+            this.acceleration.y = this.mouse_velocity.y ;
 
             for (var i = 0; i < stream_group.length; ++i) {
                 let stream = stream_group.sprites[i];
@@ -147,7 +158,6 @@ export class Geometry {
                 this.acceleration.y += stream_force.y / this.mass;
             }
     
-            console.log("ACC", this.acceleration);
         }
 
 
@@ -159,11 +169,15 @@ export class Geometry {
         const v_norm = modulus(this.velocity);
         if (v_norm > 0) {
             this.acceleration.x -= this.velocity.x * this.viscous_friction + Math.sign(this.velocity.x) * this.dynamic_friction / this.mass;
-            this.acceleration.y -= this.velocity.y * this.viscous_friction + Math.sign(this.velocity.x) * this.dynamic_friction / this.mass;
+            this.acceleration.y -= this.velocity.y * this.viscous_friction + Math.sign(this.velocity.y) * this.dynamic_friction / this.mass;
         }
+
+        //if (this.kind == "particle") console.log("Before velocity:", this.velocity);
 
         this.velocity.x += this.acceleration.x * dt;
         this.velocity.y += this.acceleration.y * dt;
+
+        this.spin_velocity -= this.spin_velocity * this.rot_friction * dt;
 
 
         // Apply the moovements
@@ -215,6 +229,8 @@ export class Geometry {
     }
 
     check_collision(collision_group) {
+        if (this.status != "alive") return false;
+
         // Apply collision reactions
         for (var i = 0; i < collision_group.length; ++i) {
             let sprite = collision_group.sprites[i];
@@ -228,7 +244,7 @@ export class Geometry {
     }
 
     // Move the baricenter on the center
-    balance() {
+    balance(move = true) {
         let baricenter = {
             x : 0, y : 0
         };
@@ -245,6 +261,11 @@ export class Geometry {
         for (var i = 0; i < this.n_vertices; ++i) {
             this.vertices[i].x -= baricenter.x;
             this.vertices[i].y -= baricenter.y;
+        }
+
+        if (move) {
+            this.x += baricenter.x;
+            this.y += baricenter.y;
         }
     }
 
@@ -283,6 +304,8 @@ export class Geometry {
     }
 
     collide_with_perimeter(perimeter) {
+        if (this.status != "alive") return false;
+
         for (var i = 0; i < this.n_edges; ++i) {
             let my_edge = this.get_global_edge(i, true);
 
@@ -389,6 +412,7 @@ export class Geometry {
         context.translate(this.x - camera.x, this.y - camera.y);
         context.rotate(this.rotation_angle);
         context.fillStyle = this.color;
+        context.lineWidth = 1;
         context.beginPath();
 
         if (this.n_vertices > 0) {
@@ -400,6 +424,7 @@ export class Geometry {
         }
         context.closePath();
         context.fill();
+        context.stroke();
         context.restore();
     }
 } 

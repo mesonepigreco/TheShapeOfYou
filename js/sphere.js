@@ -16,6 +16,10 @@ export default class Sphere extends Geometry {
         this.collide_radius = this.radius * this.hitbox;
     }
 
+    balance() {
+        // Do nothing
+    }
+
     geometrical_collision(dumb) {
         // A sphere only conlide with the spherical method
         return true;

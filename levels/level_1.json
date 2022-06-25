@@ -21,6 +21,14 @@
         "color" : "#00aa00"
     },
 
+    "switches" : [
+        {
+            "position" : [-500, 300],
+            "kind" : "switch",
+            "deactivate_id" : 0
+        }
+    ],
+
     "target" : {
         "position" : [0, -50],
         "geometry" : "sphere",
