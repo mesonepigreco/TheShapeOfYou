@@ -11,6 +11,8 @@ export class Stream extends Geometry {
         this.depth = depth;
         this.active = true;
 
+
+
         var mod = modulus(direction);
         this.direction.x /= mod;
         this.direction.y /= mod;
@@ -22,7 +24,10 @@ export class Stream extends Geometry {
             x : 0, y : 0
         };
 
-        if (!this.active) return pull_force;
+
+        if (!this.active) {
+            return pull_force;
+        }
 
         let vector = {x :  player.x - this.x , y: player.y - this.y};
         var d_ver = scalar_product(vector, this.direction);
@@ -38,12 +43,14 @@ export class Stream extends Geometry {
         var d_hor = modulus(h_vector);
 
 
-        if (d_hor > this.edge_size / 2) return pull_force;
-
+        if (d_hor > this.edge_size / 2) {
+             return pull_force;
+        }
 
         // Get the pull force
         pull_force.x = this.push_force * this.direction.x;
         pull_force.y = this.push_force * this.direction.y;
+
         return pull_force;
     }
 

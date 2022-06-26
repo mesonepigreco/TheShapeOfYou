@@ -6,6 +6,42 @@
         <link rel="stylesheet" type="text/css" href="style.css" />
     </head>
     <body>
+
+        <script type="module" src="js/main.js"></script>
+        <script>
+
+audio_context = new AudioContext();
+let buffer = null;
+let request = new XMLHttpRequest();
+request.open("GET","assets/click.wav");
+request.responseType = "arraybuffer";
+request.onload = function() {
+    let undecodedAudio = request.response;
+    self.audio_context.decodeAudioData(undecodedAudio, (data) => {
+        buffer = data
+    });
+};
+request.send();
+
+
+function on_click_sound() {
+    var source = audio_context.createBufferSource();   // creates a sound source
+    source.buffer = buffer;                     // tell the source which sound to play
+    var gainNode = audio_context.createGain();          // Create a gain node
+    source.connect(gainNode);                     // Connect the source to the gain node
+    gainNode.connect(audio_context.destination);        // Connect the gain node to the destination
+    gainNode.gain.value = 1;                  // Set the volume
+    source.start(0);                           // play the source at the deisred time 0=now
+}
+
+        </script>
+        <div>
+            <!-- HERE THE LEVELS -->
+            <div id="level1">
+                <link>
+            </div>
+        </div>
+
         <!--
         <div id="img-stick"><img class="character" src="assets/Stick.png"></div>
         <div id="img-triangle"><img class="character" src="assets/Triangle.png"></div>
@@ -15,7 +51,7 @@
         <div>
             <!-- Here add the menu buttons -->
             <canvas id="game-screen" width="1200px" height="900px"></canvas>
-            <button id="restart-level" class="ui">
+            <button id="restart-level" onclick="on_click_sound()" class="ui">
                 <img src="assets/rewind.png">
             </button>
             <button id="main-menu" class="ui">
@@ -25,14 +61,17 @@
             <span class="central-writing" id="you-lost">You Lost!</span>
             <span class="central-writing" id="you-won">You Won!</span>
             <div class="menu" id="pick-a-side">
-                <span class="text-description">Pick a shape</span>
+                <span class="text-description">Pick the good shape to reach the glowing circle</span>
                 <div class="menu-buttons">
-                    <button id="pick-1"><img class="btn-img" id="img-1"></button>
-                    <button id="pick-2"><img class="btn-img" id="img-2"></button>
+                    <button id="pick-1" onclick="on_click_sound()"><img class="btn-img" id="img-1"></button>
+                    <button id="pick-2" onclick="on_click_sound()"><img class="btn-img" id="img-2"></button>
                 </div>
             </div>
         </div>
 
-        <script type="module" src="js/main.js"></script>
+
+
+        <canvas class="ghost" id="ghost-canvas"></canvas>
+
     </body>
 </html>

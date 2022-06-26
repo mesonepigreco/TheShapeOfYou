@@ -7,6 +7,9 @@ import { Stream } from "./stream.js";
 import { destroy_geometry, GlowingSphere } from "./particles.js";
 import { Switch } from "./switch.js";
 
+import { playSound } from "./audio.js";
+import { ThreeLegs, TwoLegs, Cross } from "./tetris.js";
+
 export default class World {
     constructor(canvas, context) {
         this.canvas = canvas;
@@ -62,14 +65,175 @@ export default class World {
             self.switch_loaded++;
         });
 
+        // Define the audio context
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        this.audio_context = new AudioContext();
+
+        // Load the audio
+        this.die_track = null;
+        this.win_track = null;
+        this.glurp_track = null;
+        this.switch_track = null;
+        this.sliding_track = null;
+        this.show_menu_track = null;
+        this.stream_track = null;
+        this.boinc_track = null;
+
+        // Try to load the audio with this wired function
+        /*var request = new XMLHttpRequest();
+        request.open('GET', "assets/death1.wav", true);
+        request.responseType = 'arraybuffer';
+        // Decode asynchronously
+        request.onload = function() {
+            self.audio_context.decodeAudioData(request.response, function(buffer) {
+                if (!buffer) {
+                    console.log('Error decoding file data: ' + url);
+                    return;
+                }
+            self.die_track = buffer;
+            console.log("BUFFER DIE:", buffer);
+            });
+        request.onerror = function() {
+            console.log('BufferLoader: XHR error');        
+            };
+        request.send();
+        };*/
+        
+
+
+        //this.die_sound = new Audio("assets/death1.wav");
+        //this.win_sound = new Audio("assets/win.wav");
+        //this.glurp_sound = new Audio("assets/glurp.wav");
+        //this.switch_sound = new Audio("assets/switch.wav");
+        //this.sliding_sound = new Audio("assets/sliding.wav");
+        //this.show_menu_sound = new Audio("assets/menu.wav");
+        
+
+        let request = new XMLHttpRequest();
+        request.open("GET", "assets/death1.wav");
+        request.responseType = "arraybuffer";
+        request.onload = function() {
+            let undecodedAudio = request.response;
+            self.audio_context.decodeAudioData(undecodedAudio, (data) => {
+                self.die_track = data
+                console.log("NOW DATA:", data);
+                console.log("NOW THIS:", self.die_track);
+            });
+        };
+        request.send();
+        
+        let request2 = new XMLHttpRequest();
+        request2.open("GET", "assets/win.wav");
+        request2.responseType = "arraybuffer";
+        request2.onload = function() {
+            let undecodedAudio = request2.response;
+            self.audio_context.decodeAudioData(undecodedAudio, (data) => {
+                self.win_track = data
+            });
+        };
+        request2.send();
+
+        
+        let request3 = new XMLHttpRequest();
+        request3.open("GET", "assets/switch.wav");
+        request3.responseType = "arraybuffer";
+        request3.onload = function() {
+            let undecodedAudio = request3.response;
+            self.audio_context.decodeAudioData(undecodedAudio, (data) => {
+                self.switch_track = data
+            });
+        };
+        request3.send();
+
+        let request4 = new XMLHttpRequest();
+        request4.open("GET", "assets/glurp.wav");
+        request4.responseType = "arraybuffer";
+        request4.onload = function() {
+            let undecodedAudio = request4.response;
+            self.audio_context.decodeAudioData(undecodedAudio, (data) => {
+                self.glurp_track = data
+            });
+        };
+        request4.send();
+
+        let request5 = new XMLHttpRequest();
+        request5.open("GET", "assets/sliding.wav");
+        request5.responseType = "arraybuffer";
+        request5.onload = function() {
+            let undecodedAudio = request5.response;
+            self.audio_context.decodeAudioData(undecodedAudio, (data) => {
+                self.sliding_track = data
+            });
+        };
+        request5.send();
+
+        let request6 = new XMLHttpRequest();
+        request6.open("GET", "assets/menu.wav");
+        request6.responseType = "arraybuffer";
+        request6.onload = function() {
+            let undecodedAudio = request6.response;
+            self.audio_context.decodeAudioData(undecodedAudio, (data) => {
+                self.show_menu_track = data
+            });
+        };
+        request6.send();
+
+
+        let request7 = new XMLHttpRequest();
+        request7.open("GET", "assets/wind.wav");
+        request7.responseType = "arraybuffer";
+        request7.onload = function() {
+            let undecodedAudio = request7.response;
+            self.audio_context.decodeAudioData(undecodedAudio, (data) => {
+                self.stream_track = data
+            });
+        };
+        request7.send();
+
+        let request8 = new XMLHttpRequest();
+        request8.open("GET", "assets/boinc.wav");
+        request8.responseType = "arraybuffer";
+        request8.onload = function() {
+            let undecodedAudio = request8.response;
+            self.audio_context.decodeAudioData(undecodedAudio, (data) => {
+                self.boinc_track = data
+            });
+        };
+        request8.send();
+
+
+        // For the sliding sound we need a source since it is in loop
+
+        // creates a sound source
+        this.audio_source_sliding = null;
+        this.audio_source_stream = null;
+        this.sliding_gain_node = null;
+        this.glurp_timeout = 5000;
+        this.glurp_trigger = -1;
+    
+
+        //this.sliding_sound = new Audio("assets/sliding.wav");
+        //this.show_menu_sound = new Audio("assets/menu.wav");
+
+          
+
+        //this.die_track = this.audio_context.createMediaElementSource(this.die_sound);
+        //this.die_track.connect(this.audio_context.destination);
+
+        
+        //this.sliding_sound.loop = true;
+        this.sliding_maxvel = 440;
+
+
+
         this.pause = false;
         this.death_trigger = -1;
-        this.death_timeout = 2500;
+        this.death_timeout = 1500;
         this.start_trigger = -1;
 
         this.pull_spring = 200;
 
-        this.glowing_generation_rate = 200;
+        this.glowing_generation_rate = 100;
 
         this.restarting = false;
 
@@ -101,6 +265,9 @@ export default class World {
             y : this.player.y
         }*/
 
+        playSound(this.audio_context, this.show_menu_track, 0, 1);
+        if (this.audio_source_sliding !== null) this.audio_source_sliding.stop(0);
+        //this.show_menu_sound.play()
         this.pause = true;
 
         let pick_menu = document.getElementById("pick-a-side");
@@ -114,13 +281,16 @@ export default class World {
         // Add the images to the correct object
         const img_src = "assets/" + pick_element.texts[0] + ".png";
         const img1 = document.getElementById("img-1");
-        img1.src = img_src;
-        img1.width = pick_element.choice1.edge_size;
+        //img1.src = img_src;
+        //img1.width = pick_element.choice1.edge_size;
+        img1.src = pick_element.choice1.get_img_url();
+        console.log("SRC:", img1.src);
 
         const img_src2 = "assets/" +  pick_element.texts[1] + ".png";
         const img2 = document.getElementById("img-2");
-        img2.src = img_src2;
-        img2.width = pick_element.choice2.edge_size;
+        //img2.src = img_src2;
+        //img2.width = pick_element.choice2.edge_size;
+        img2.src = pick_element.choice2.get_img_url();
 
         // Add the event listener
         let self = this;
@@ -220,6 +390,7 @@ export default class World {
         }
     }
 
+
     update_switches() {
         // Check the collision between the player and all the switches
         for (var i = 0; i < this.switch_sprites.length; ++i) {
@@ -229,27 +400,31 @@ export default class World {
                     swtc.is_on = false;
                     this.stream_sprites.sprites[swtc.deactivate_id].active = false;
 
-                    console.log("SWITCH!");
 
                     // TODO: play a sound
+                    //this.switch_sound.play();
+                    //this.switch_track.noteOn(0);
+                    playSound(this.audio_context, this.switch_track, 0, 1);
                 } 
             }
         }
     }
 
     update_spawn_glowing(deltaTime) {
-        /*
-        if (Math.random() < deltaTime / this.glowing_generation_rate) {
-            const rx = Math.random()*2. - 1;
-            const ry = Math.random()*2. - 1;
-            let particle = new GlowingSphere(this.player.x, this.player.y, this.canvas);
-            particle.viscous_friction = 0;//.001;
-            particle.dynamic_friction = 0;
-            this.glowing_sprites.add(particle);
-            particle.velocity.x = rx * 40.;
-            particle.velocity.y = ry * 40.;
-
-        }*/
+        let vel = modulus(this.player.velocity);
+        if (vel > 0) {
+            if (Math.random() < deltaTime * vel / 16000) {
+                const rx = Math.random()*2. - 1;
+                const ry = Math.random()*2. - 1;
+                let particle = new GlowingSphere(this.player.x, this.player.y, this.canvas);
+                particle.viscous_friction = 0;//.001;
+                particle.dynamic_friction = 0;
+                particle.radius_factor = this.player.edge_size / 4;
+                this.glowing_sprites.add(particle);
+                particle.velocity.x = rx * 70.;
+                particle.velocity.y = ry * 70.;
+            }
+        }
 
         for (var i = 0; i < this.stream_sprites.length; ++i) {
             let stream = this.stream_sprites.sprites[i];
@@ -273,7 +448,95 @@ export default class World {
         }
     }
 
+    update_sliding() {
+        let vel = modulus(this.player.velocity);
+
+        // Audio volume
+        //if (vel > this.sliding_maxvel) vel = this.sliding_maxvel;
+        let volume = vel / this.sliding_maxvel;
+        if (volume > 1) volume = 1;
+
+        if (volume > 0.05) {
+            if (this.audio_source_sliding === null) {
+                this.audio_source_sliding = this.audio_context.createBufferSource(); 
+                this.audio_source_sliding.buffer = this.sliding_track; 
+                this.sliding_gain_node = this.audio_context.createGain(); 
+                this.audio_source_sliding.connect(this.sliding_gain_node);
+                this.sliding_gain_node.connect(this.audio_context.destination); 
+                this.sliding_gain_node.gain.value = volume;
+                this.audio_source_sliding.loop = true;
+                this.audio_source_sliding.start(0);
+                console.log("Start volume:", volume);
+            } else {
+                this.sliding_gain_node.gain.value = volume;
+            }
+        } else {
+            if (this.audio_source_sliding !== null) {
+                this.audio_source_sliding.stop();
+                this.audio_source_sliding = null;
+                this.sliding_gain_node = null;
+            }
+        }
+    }
+
+    update_distances() {
+        for (var i = 0; i < this.collision_sprites.length; ++i) {
+            let other = this.collision_sprites.sprites[i];
+
+            if (other.kind !== "bouncing") continue;
+
+            // Set the volume
+            var dfactor = 500;
+            var distance = modulus({
+                x : this.player.x - other.x,
+                y : this.player.y - other.y
+            });
+            if (distance < dfactor) {
+                if (other.boinc_sound !== null) {
+                    var volume = 1 - distance /  dfactor;
+
+                    // Check if a bouncing has been setted
+                    if (other.bouncing_toplay) {
+                        playSound(this.audio_context, this.boinc_track, 0, volume);
+                    }
+                }
+            } 
+        }
+    }
+
+    refresh_stream_sounds() {
+        let streaming = false;
+        for (var i = 0; i < this.stream_sprites.length; ++i) {
+            let stream = this.stream_sprites.sprites[i];
+
+            let pforce = stream.player_collision(this.player);
+            if (modulus(pforce) > 0 && ! this.pause && this.player.status !== "killed") {
+                streaming = true;
+                if (this.audio_source_stream === null) {
+                    this.audio_source_stream = this.audio_context.createBufferSource(); 
+                    this.audio_source_stream.buffer = this.stream_track; 
+                    let gain_node = this.audio_context.createGain(); 
+                    this.audio_source_stream.connect(gain_node);
+                    gain_node.connect(this.audio_context.destination); 
+                    gain_node.gain.value = 1;
+                    this.audio_source_stream.loop = true;
+                    this.audio_source_stream.start(0);
+                    console.log("STREAM:", this.stream_track);
+                }
+            } 
+        }
+        if (!streaming) {
+            if (this.audio_source_stream !== null) {
+                this.audio_source_stream.stop();
+                this.audio_source_stream = null;
+                console.log("NO STREAM");
+            }
+        }
+    }
+
     update(deltaTime) {
+        this.refresh_stream_sounds();
+
         //this.show_pick_menu("triangle", "square")
         if (! this.pause) {
             this.visible_sprites.update(deltaTime, this.camera, this.collision_sprites, this.perimeter, this.stream_sprites);
@@ -288,6 +551,8 @@ export default class World {
             this.camera.x += this.camera_velocity.x * dt
             this.camera.y += this.camera_velocity.y * dt
 
+            this.update_sliding();
+            this.update_distances();
 
             this.check_pick();
 
@@ -298,31 +563,39 @@ export default class World {
 
             // Check the death
             if (this.check_player_death()) {
-                return "death";
+                this.restarting = true;
+                return "win";
             } else if (this.check_player_win()) {
                 return "win";
             }
             return "idle";
         } else {
-            console.log("PAUSE:", this.pause);
-            return "idle"
+            return "idle";
         }
     }
 
     check_player_death() {
+        let time = Date.now();
         if (this.player.check_collision(this.collision_sprites) || this.player.collide_with_perimeter(this.perimeter)) {
             destroy_geometry(this.player, this.visible_sprites);
             this.player.kill();
             this.player.velocity.x = 0;
             this.player.velocity.y = 0;
-            this.death_trigger = Date.now();
+            this.death_trigger = time;
+
+            // Play the death sound
+            //this.die_sound.play()
+            //this.die_track.start(0);
+            playSound(this.audio_context, this.die_track, 0, 1);
         }
 
-        if (this.death_trigger > 0 && Date.now() - this.death_trigger > this.death_timeout) {
-            this.player.relive([this.visible_sprites]);
-            this.player.x = this.spawn_point.x;
-            this.player.y = this.spawn_point.y;
+        if (this.death_trigger > 0 && time - this.death_trigger > this.death_timeout) {
+            //this.player.relive([this.visible_sprites]);
+            //this.player.x = this.spawn_point.x;
+            //this.player.y = this.spawn_point.y;
             this.death_trigger = -1;
+            this.end_trigger = time;
+            this.restarting = true;
         } 
         return false;
     }
@@ -337,8 +610,16 @@ export default class World {
             this.player.pull_force.x = distance.x * this.pull_spring;
             this.player.pull_force.y = distance.y * this.pull_spring;
 
+            //if (this.glurp_sound.paused) this.glurp_sound.play();
+            let time = Date.now();
+            if (time - this.glurp_trigger > this.glurp_timeout) {
+                playSound(this.audio_context, this.glurp_track, 0, 1);
+                this.glurp_trigger = time;
+            }
+
             if (modulus(distance) < 5 && modulus(this.player.velocity) < 1 && this.end_trigger < 0) {
                 this.end_trigger = time;
+                playSound(this.audio_context, this.win_track, 0, 1);
             } 
         }
 
@@ -413,96 +694,93 @@ export default class World {
         this.pause = false;
     }
 
-    create_level(json_url, clean = true) {
+    create_level(world_data, clean = true) {
         this.level_loaded = false;
-        this.level = json_url;
+        this.level = world_data;
         let self = this;
 
-        console.log("Loading:", json_url);
+        console.log("Loading:", world_data);
 
         // Polish the level
         if (clean) this.reset();
 
-        // Retrive the json data
-        fetch(json_url).then(response => response.text()).then(
-            data => {
-                // Create the level
-                let world_data = JSON.parse(data);
+        // Wait for the level to load completely;
 
-                // Generate the external perimeter
-                if ("perimeter" in world_data) {
-                    for (var i = 0; i < world_data.perimeter.length; ++i) {
-                        let vector = {
-                            x : world_data.perimeter[i][0],
-                            y : world_data.perimeter[i][1]
-                        };
-                        this.perimeter.push(vector);
-                    }
-                } else {
-                    console.log("Perimeter not found in ", json_url);
-                }
+        // Create the level
+        //let world_data = JSON.parse(data);
 
-                // Generate the player
-                if ("player" in world_data) {
-                    this.player = create_geometry_from_json(world_data.player, this.canvas);
-                    this.spawn_point.x = this.player.x;
-                    this.spawn_point.y = this.player.y;
-                    this.visible_sprites.add(this.player);
-                } else {
-                    console.log("Player not found in ", json_url);
-                }
-
-                if ("switches" in world_data) {
-                    for (var i = 0; i < world_data.switches.length; ++i) {
-                        let my_switch = new Switch(world_data.switches[i].position[0],
-                            world_data.switches[i].position[1],
-                            this.switch_image_off, this.switch_image_on, 
-                            world_data.switches[i].deactivate_id,
-                            this.canvas);
-                        this.switch_sprites.add(my_switch);
-                        this.visible_sprites.add(my_switch);
-                    }
-                }
-
-                if ("enemies" in world_data) {
-                    let enemy_list = world_data.enemies;
-                    for (var i = 0; i < enemy_list.length; i++ ) {
-                        let enemy = create_geometry_from_json(enemy_list[i]);
-                        this.visible_sprites.add(enemy);
-                        this.collision_sprites.add(enemy);
-                    }
-                } else {
-                    console.log("enemies not found in ", json_url);
-                }
-
-                if ("target" in world_data) {
-                    this.target = create_geometry_from_json(world_data.target);
-                    this.winning_sprites.add(this.target);
-                    this.visible_sprites.add(this.target);
-                }
-
-                if ("picks" in world_data) {
-                    for (var i = 0; i < world_data.picks.length; ++i) {
-                        console.log("here:", world_data.picks[i]);
-                        let pick = new PickMe(world_data.picks[i], this.canvas);
-                        this.pick_sprites.add(pick);
-                        this.visible_sprites.add(pick);
-                    }
-                }
-
-                if ("streams" in world_data) {
-                    for (var i = 0; i < world_data.streams.length; ++i) {
-                        let stream = create_geometry_from_json(world_data.streams[i]);
-                        this.visible_sprites.add(stream);
-                        this.stream_sprites.add(stream);
-                    }
-                }
-
-                // Set the ready flag
-                self.level_loaded = true;
+        // Generate the external perimeter
+        if ("perimeter" in world_data) {
+            for (var i = 0; i < world_data.perimeter.length; ++i) {
+                let vector = {
+                    x : world_data.perimeter[i][0],
+                    y : world_data.perimeter[i][1]
+                };
+                this.perimeter.push(vector);
             }
-        );
+        } else {
+            console.log("Perimeter not found");
+        }
 
+        // Generate the player
+        if ("player" in world_data) {
+            this.player = create_geometry_from_json(world_data.player, this.canvas);
+            this.spawn_point.x = this.player.x;
+            this.spawn_point.y = this.player.y;
+            this.visible_sprites.add(this.player);
+        } else {
+            console.log("Player not found in");
+        }
+
+        if ("switches" in world_data) {
+            for (var i = 0; i < world_data.switches.length; ++i) {
+                let my_switch = new Switch(world_data.switches[i].position[0],
+                    world_data.switches[i].position[1],
+                    this.switch_image_off, this.switch_image_on, 
+                    world_data.switches[i].deactivate_id,
+                    this.canvas);
+                my_switch.is_on = true;
+                this.switch_sprites.add(my_switch);
+                this.visible_sprites.add(my_switch);
+            }
+        }
+
+        if ("enemies" in world_data) {
+            let enemy_list = world_data.enemies;
+            for (var i = 0; i < enemy_list.length; i++ ) {
+                let enemy = create_geometry_from_json(enemy_list[i]);
+                this.visible_sprites.add(enemy);
+                this.collision_sprites.add(enemy);
+            }
+        } else {
+            console.log("enemies not found");
+        }
+
+        if ("target" in world_data) {
+            this.target = create_geometry_from_json(world_data.target);
+            this.winning_sprites.add(this.target);
+            this.visible_sprites.add(this.target);
+        }
+
+        if ("picks" in world_data) {
+            for (var i = 0; i < world_data.picks.length; ++i) {
+                console.log("here:", world_data.picks[i]);
+                let pick = new PickMe(world_data.picks[i], this.canvas);
+                this.pick_sprites.add(pick);
+                this.visible_sprites.add(pick);
+            }
+        }
+
+        if ("streams" in world_data) {
+            for (var i = 0; i < world_data.streams.length; ++i) {
+                let stream = create_geometry_from_json(world_data.streams[i]);
+                this.visible_sprites.add(stream);
+                this.stream_sprites.add(stream);
+            }
+        }
+
+        // Set the ready flag
+        self.level_loaded = true;
 
     }
 
@@ -567,17 +845,28 @@ function create_geometry_from_json(json_object, canvas) {
                 position.y, json_object.edge_size, 
                 json_object.kind,
                 canvas);
+        } else if (json_object.geometry === "three legs") {
+            my_object = new ThreeLegs(position.x,
+                position.y, json_object.edge_size, json_object.kind, canvas);
+        } else if (json_object.geometry === "two legs") {
+            my_object = new TwoLegs(position.x,
+                position.y, json_object.edge_size, json_object.kind, canvas);
+        } else if (json_object.geometry === "cross") {
+            my_object = new Cross(position.x,
+                position.y, json_object.edge_size, json_object.kind, canvas);
         } else {
             console.log("Error while parsing unkwnown geometry ", json_object.geometry);
             return null;
         }
 
+        if ("flip" in json_object) {
+            my_object.flip(json_object.flip.x, json_object.flip.y);
+        }
 
-        if ("balance" in json_object) {
+
+        if ("balance" in json_object)
             if (json_object.balance) 
                 my_object.balance();
-        } else
-            my_object.balance();
     }
 
 

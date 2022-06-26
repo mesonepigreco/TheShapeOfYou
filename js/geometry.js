@@ -32,6 +32,10 @@ export class Geometry {
         this.rotation_angle = 0;
         this.color = "#f00";
 
+        this.bouncing_trigger = -1;
+        this.bouncing_timeout = 500;
+        this.bouncing_toplay = true;
+
         // Initialize a mouse instance only for the player
         if (this.kind === "player") 
             this.mouse_ctrl = new Mouse(canvas); 
@@ -81,6 +85,15 @@ export class Geometry {
 
     get n_vertices() {
         return this.vertices.length;
+    }
+
+    flip(bool_x, bool_y) {
+        // Flip the geometry along the desidered axis
+        for (var i = 0; i < this.n_vertices; ++i) {
+            let v = this.vertices[i];
+            if (bool_x) v.x*=-1;
+            if (bool_y) v.y*=-1;
+        }
     }
 
     get_global_vertex(index, hitbox = false) {
@@ -158,6 +171,7 @@ export class Geometry {
                 this.acceleration.x += stream_force.x / this.mass;
                 this.acceleration.y += stream_force.y / this.mass;
             }
+
     
         }
 
@@ -210,12 +224,19 @@ export class Geometry {
             condition = this.collide_with_perimeter(perimeter);
             if (!condition) condition = this.check_collision(collision_group);
 
-            if (condition) {
+            let time = Date.now();
+
+            if (condition && time - this.bouncing_trigger > this.bouncing_timeout) {
                 this.velocity.x *= -1;
                 this.velocity.y *= -1;
                 this.pull_force.x *= -1;
                 this.pull_force.y *= -1;
                 this.spin_velocity *= -1;
+
+                this.bouncing_trigger = time;
+                this.bouncing_toplay = true;
+            } else {
+                this.bouncing_toplay = false;
             }
         }
     }
@@ -227,6 +248,36 @@ export class Geometry {
                 return true;
         } 
         return false;
+    }
+
+    // Draw the image on a ghost canvas, and return an url of the img object
+    get_img_url() {
+        const canvas = document.getElementById("ghost-canvas");
+        const context = canvas.getContext("2d");
+
+        // Get width and height of the image
+        let width = 0;
+        let height = 0;
+
+        let tmp = 0;
+        for (var i = 0; i < this.vertices.length; ++i) {
+            let v = this.vertices[i];
+            tmp = Math.abs(v.x);
+            if (tmp > width) width = tmp;
+            tmp = Math.abs(v.y)
+            if (tmp > height) height = tmp;
+        }
+        width *= 2;
+        height *= 2;
+
+        canvas.width = width;
+        canvas.height = height;
+
+        let camera = {x: this.x -width/2, y:  this.y -height/2};
+
+        context.clearRect(0,0, width, height);
+        this.draw(context, camera);
+        return canvas.toDataURL();
     }
 
     check_collision(collision_group) {
@@ -297,6 +348,7 @@ export class Geometry {
         // First use a circular collision 
         const distance2 = (this.x - other.x)*(this.x - other.x) + (this.y - other.y)*(this.y - other.y) ;
         const tollerance =  this.collide_radius*this.collide_radius + other.collide_radius*other.collide_radius + 2 * this.collide_radius*other.collide_radius;
+
 
         if (distance2 < tollerance) {
             return true;

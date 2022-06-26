@@ -3,16 +3,30 @@
     src: url("PressStart2P-Regular.ttf") format("truetype");
 }
 
+:root {
+    --cwidth: 800px;
+    --cheight: 600px;
+}
+
 canvas {
     outline: black 3px solid;
 }
 canvas, div.ui {
     position: absolute;
     transform: translate(-50%, -50%);
-    width: 1200px;
+    width: var(--cwidth);
     left: 50%;
-    height: 900px;
+    height: var(--cheight);
     top: 50%;
+    cursor: url(assets/pointer.png) 15 15, pointer;
+}
+
+canvas.ghost {
+    opacity: 0;
+    position: absolute;
+    top : var(--cwidth);
+    left : var(--cheight);
+    transform: translate(100%, 100%);
 }
 
 .central-writing {
@@ -21,7 +35,7 @@ canvas, div.ui {
     top:-350%;
     left: -350%;
     font-family: "press-start";
-    font-size: 42px;
+    font-size: 28px;
     opacity: 0;
 }
 
@@ -34,19 +48,24 @@ div.menu {
     font-family: "press-start";
     font-size: 42px;
     opacity: 0;
-    width: 1200px;
+    width: var(--cwidth);
 }
 
 div.menu > .text-description {
-    display: block;
+    position: absolute;
+    font-size: 28px;
+    transform: translate(-50%,-100%);
+    top: calc(50% - var(--cheight) / 8);
+    left: 50%;
+    width: calc(var(--cwidth) * 4 / 5);
     text-align: center;
-    color : rgb(200, 195, 195);
-    padding-bottom: 50px;
+    color : rgb(217, 201, 201);
 }
 
 div.menu > div.menu-buttons {
     display: flex;
     align-items: center;
+    transform: translateY(+50%);
 }
 
 .menu-buttons > button {
@@ -81,14 +100,14 @@ button:hover {
 #restart-level {
     position: absolute;
     transform: translate(0, -100%);
-    left:calc(50% - 600px);
-    top : calc(50% + 450px);
+    left:calc(50% - var(--cwidth) / 2);
+    top : calc(50% + var(--cheight) / 2);
 }
 #main-menu {
     position: absolute;
     transform: translate(-100%, -100%);
-    left:calc(50% + 600px);
-    top : calc(50% + 450px);
+    left:calc(50% + var(--cwidth) / 2);
+    top : calc(50% + var(--cheight) / 2);
 }
 
 button.ui {
